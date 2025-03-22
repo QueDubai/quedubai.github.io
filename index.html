@@ -4,9 +4,169 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>YYSLS</title>
+  <link rel="stylesheet" href="./index.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
-  <div class="main">123</div>
+  <div id="app">
+    <input class="input" v-model.number="eles.attackMax" />
+    <div class="result">
+      总伤害：{{damages.total}}
+    </div>
+  </div>
 </body>
-</html>
+<script type="module">
+  import { createApp, ref, computed } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+
+  const eleList = [
+    { label: '鸣金', value: 'mj' },
+    { label: '裂石', value: 'ls' },
+    { label: '牵丝', value: 'qs' },
+    { label: '破竹', value: 'pz' },
+  ];
+  const limits = {
+    accuRate: [0, 100],
+    hitMinRate: [0, 100],
+    hitMin: [0, 100],
+    hitMaxRate: [0, 50],
+    hitMax: [0, 100],
+  };
+  const genAttr = () => {
+    const data = {
+      attackMin: 500,
+      attackMax: 1000,
+      accuRate: 80,
+      hitMinRate: 40,
+      hitMin: 50,
+      hitMaxRate: 20,
+      hitMax: 35,
+      eleType: eleList[0].value,
+    };
+    eleList.forEach((item) => {
+      data[`${item.value}Min`] = 0;
+      data[`${item.value}Max`] = 0;
+    });
+
+    return data;
+  };
+
+  const calcAttr = (attr) => {
+    const genRange = (min, max) => {
+      if (min > max) return min;
+      return Math.floor((min + (max - min) / 2));
+    };
+    // 格式化数据
+    const genTrueData = (item) => {
+      const defAttr = genAttr();
+      const keys = Object.keys(item).filter(it => it !== 'eleType');
+      const mockData = { ...item };
+      keys.forEach((key) => {
+        const isTrueVal = typeof item[key] === 'number' && item[key] >= 0 && item[key] <= 9999;
+        mockData[key] = isTrueVal ? item[key] : defAttr[key];
+        if (limits[key]) mockData[key] = Math.max(limits[key][0], Math.min(limits[key][1], mockData[key]));
+      });
+      if (mockData.hitMinRate + mockData.hitMaxRate > 100) mockData.hitMinRate = 100 - mockData.hitMaxRate;
+      if (mockData.attackMin > mockData.attackMax) mockData.attackMax = mockData.attackMin;
+      eleList.forEach((it) => {
+        if (mockData[`${it.value}Min`] > mockData[`${it.value}Max`]) mockData[`${it.value}Max`] = mockData[`${it.value}Min`];
+      });
+      return mockData;
+    };
+    // 获取属性攻击的数据
+    const genEleData = (item) => {
+      let max = 0;
+      let min = 0;
+      let common = 0;
+      eleList.forEach((it) => {
+        if (it.value === item.eleType) {
+          max += Math.max(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+          min += Math.min(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+          common += genRange(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+        } else {
+          max += Math.max(item[`${it.value}Min`], item[`${it.value}Max`]);
+          min += Math.min(item[`${it.value}Min`], item[`${it.value}Max`]);
+          common += genRange(item[`${it.value}Min`], item[`${it.value}Max`]);
+        }
+      });
+      return { max, min, common };
+    };
+    const {
+      attackMin,
+      attackMax,
+      accuRate,
+      hitMinRate,
+      hitMin,
+      hitMaxRate,
+      hitMax,
+      eleType,
+    } = genTrueData(attr);
+    let total = 0;
+    const hitMaxCount = hitMaxRate;
+    const hitMinCount = hitMinRate * accuRate / 100;
+    const otherCount = (100 - hitMaxRate) * (100 - accuRate) / 100;
+    const commonCount = 100 - hitMaxCount - hitMinCount - otherCount;
+    const counts = {
+      hitMax: hitMaxCount,
+      hitMin: hitMinCount,
+      common: commonCount,
+      other: otherCount,
+    };
+    const eleData = genEleData(attr);
+    const attackDamages = {
+      hitMax: hitMaxCount * attackMax * (100 + hitMax) / 1e4,
+      hitMin: hitMinCount * genRange(attackMin, attackMax) * (100 + hitMin) / 1e4,
+      common: commonCount * genRange(attackMin, attackMax) / 1e2,
+      other: otherCount * attackMin / 1e2,
+    };
+    const eleDamages = {
+      hitMax: hitMaxCount * eleData.max * (100 + hitMax) / 1e4,
+      hitMin: hitMinCount * eleData.common * (100 + hitMin) / 1e4,
+      common: commonCount * eleData.common / 1e2,
+      other: otherCount * eleData.min / 1e2,
+    };
+    const damages = {};
+    Object.keys(attackDamages).forEach((key) => {
+      if (!damages.total) damages.total = 0;
+      if (!damages[key]) damages[key] = 0;
+      if (!damages.attack) damages.attack = 0;
+      if (!damages.ele) damages.ele = 0;
+      damages.total += attackDamages[key];
+      damages.attack += attackDamages[key];
+      damages.ele += eleDamages[key];
+      damages[key] += attackDamages[key];
+      damages[key] += eleDamages[key];
+    });
+
+    // eslint-disable-next-line no-console
+    console.log({
+      attr,
+      counts,
+      eleData,
+      damages,
+    });
+
+    return damages;
+  };
+
+  // eslint-disable-next-line no-console
+  // console.log('genAttr', calcAttr(genAttr()));
+
+  createApp({
+    setup() {
+      const message = ref('Hello Vue!');
+      const eles = ref(genAttr());
+
+      const damages = computed(() => calcAttr(eles.value));
+
+      // eslint-disable-next-line no-console
+      console.log('damages', damages);
+
+      return {
+        message,
+        eles,
+        damages,
+      }
+    }
+  }).mount('#app')
+</script>
