@@ -1,0 +1,29 @@
+.result {
+  margin-top: 10px;
+  width: 100%;
+  padding: 15px;
+  background: #eee;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  padding: 5px;
+  border: 1px solid #999;
+  text-align: center;
+}
+.result-tr .red-td {
+  color: #ff8345;
+}
+.result-tr .green-td {
+  color: #8cc540;
+}
+.result-tips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}

@@ -1,4 +1,36 @@
-.input {
-  border: 1px solid #999;
-  border-radius: 5px;
+body {
+  padding: 0;
+  margin: 0;
+}
+div {
+  box-sizing: border-box;
+}
+
+#app {
+  width: 1200px;
+  margin-left: calc(50vw - 600px);
+}
+.container.inited {
+  display: block !important;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  margin-top: 20px;
+}
+.main {
+  display: flex;
+  align-items: stretch;
+  gap: 15px;
+}
+
+.green-btn {
+  color: #8cc540;
+  background: #000;
+}
+.red-btn {
+  color: #fff;
+  background: #ff8345;
 }

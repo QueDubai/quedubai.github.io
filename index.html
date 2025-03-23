@@ -6,19 +6,164 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YYSLS</title>
   <link rel="stylesheet" href="./index.css">
+  <link rel="stylesheet" href="./form.css">
+  <link rel="stylesheet" href="./card.css">
+  <link rel="stylesheet" href="./result.css">
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
   <div id="app">
-    <input class="input" v-model.number="eles.attackMax" />
-    <div class="result">
-      总伤害：{{damages.total}}
+    <header class="header">浮云城输出期望值简易计算工具</header>
+    <div :class="['container', { inited: inited }]" style="display: none;">
+      <div class="main">
+        <div class="form">
+          <div class="label">
+            <div class="name">名称</div>
+            <div class="value"><input class="input" v-model="eles.name" /></div>
+          </div>
+          <div class="label">
+            <div class="name">外功</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.attackMin" />
+              <div class="to">~</div>
+              <input class="input" v-model.number="eles.attackMax" />
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">精准</div>
+            <div class="value"><input class="input" v-model.number="eles.accuRate" /></div>
+          </div>
+          <div class="label">
+            <div class="name">会心</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.hitMinRate" />
+              <div class="to">会心伤害</div>
+              <input class="input" v-model.number="eles.hitMin" />
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">会意</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.hitMaxRate" />
+              <div class="to">会意伤害</div>
+              <input class="input" v-model.number="eles.hitMax" />
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">流派</div>
+            <div class="value">
+              <label class="ele-type" v-for="item of eleList" :key="item.value">
+                <input type="radio" :value="item.value" v-model="eles.eleType" />{{item.label}}
+              </label>
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">鸣金</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.mjMin" />
+              <div class="to">~</div>
+              <input class="input" v-model.number="eles.mjMax" />
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">裂石</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.lsMin" />
+              <div class="to">~</div>
+              <input class="input" v-model.number="eles.lsMax" />
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">牵丝</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.qsMin" />
+              <div class="to">~</div>
+              <input class="input" v-model.number="eles.qsMax" />
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">破竹</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.pzMin" />
+              <div class="to">~</div>
+              <input class="input" v-model.number="eles.pzMax" />
+            </div>
+          </div>
+          <div class="btns">
+            <div class="btn" @click="onSave">保存</div>
+            <div class="btn" @click="onReset">重置</div>
+            <div :class="['btn', { active: targetPlan === eles.id }]" @click="targetPlan = eles.id">目标套</div>
+            <div :class="['btn', { active: currentPlan === eles.id }]" @click="currentPlan = eles.id">对比套</div>
+          </div>
+        </div>
+
+        <div class="cards">
+          <template v-if="cards.length">
+            <div class="card" v-for="item of cards" :key="item.id">
+              <div class="card-name">{{item.name}}</div>
+              <div class="card-deliver"></div>
+              <div class="card-span">外功：{{item.attackMin}} - {{item.attackMax}}</div>
+              <div class="card-span">精准：{{item.accuRate}}%</div>
+              <div class="card-span">会心：{{item.hitMinRate}}% &emsp; 会心伤害：{{item.hitMin}}%</div>
+              <div class="card-span">会意：{{item.hitMaxRate}}% &emsp; 会意伤害：{{item.hitMax}}%</div>
+              <div class="card-span">鸣金：{{item.mjMin}} - {{item.mjMax}}</div>
+              <div class="card-span">裂石：{{item.lsMin}} - {{item.lsMax}}</div>
+              <div class="card-span">牵丝：{{item.qsMin}} - {{item.qsMax}}</div>
+              <div class="card-span">破竹：{{item.pzMin}} - {{item.pzMax}}</div>
+              <div class="card-deliver"></div>
+              <div class="card-btns">
+                <div class="card-btn" @click="onEdit(item.id)">编辑</div>
+                <div class="card-btn" @click="onRemove(item.id)">删除</div>
+                <div :class="['card-btn', { active: targetPlan === item.id }]" @click="targetPlan = item.id">目标套</div>
+                <div :class="['card-btn', { active: currentPlan === item.id }]" @click="currentPlan = item.id">对比套</div>
+              </div>
+            </div>
+          </template>
+          <div class="cards-tips" v-else>
+            左边填好数值保存之后，数据将在这里展示
+          </div>
+        </div>
+      </div>
+      <div class="result">
+        <table class="table" v-if="result.length">
+          <thead>
+            <tr>
+              <th rowspan="2">标题</th>
+              <th rowspan="2">总伤害</th>
+              <th colspan="4">伤害分类1</th>
+              <th colspan="2">伤害分类2</th>
+            </tr>
+            <tr>
+              <th>擦伤</th>
+              <th>普通</th>
+              <th>会心</th>
+              <th>会意</th>
+              <th>外功伤害</th>
+              <th>属性伤害</th>
+            </tr>
+          </thead>
+          <tr v-for="item of result" :class="item.extraCls" :key="item.alias">
+            <td>{{item.alias}}</td>
+            <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.total}}</td>
+            <td :class="{ 'red-td': item.other < 0, 'green-td': item.other > 0 }">{{item.other}}</td>
+            <td :class="{ 'red-td': item.common < 0, 'green-td': item.common > 0 }">{{item.common}}</td>
+            <td :class="{ 'red-td': item.hitMin < 0, 'green-td': item.hitMin > 0 }">{{item.hitMin}}</td>
+            <td :class="{ 'red-td': item.hitMax < 0, 'green-td': item.hitMax > 0 }">{{item.hitMax}}</td>
+            <td :class="{ 'red-td': item.attack < 0, 'green-td': item.attack > 0 }">{{item.attack}}</td>
+            <td :class="{ 'red-td': item.ele < 0, 'green-td': item.ele > 0 }">{{item.ele}}</td>
+          </tr>
+        </table>
+        <div class="result-tips" v-else>
+          选择“目标套”和“对比套”后，生成对比结果
+        </div>
+      </div>
     </div>
   </div>
 </body>
 <script type="module">
   import { createApp, ref, computed } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
+  const storeAttrGroup = JSON.parse(localStorage.getItem('attrGroups') || '[]');
   const eleList = [
     { label: '鸣金', value: 'mj' },
     { label: '裂石', value: 'ls' },
@@ -34,6 +179,8 @@
   };
   const genAttr = () => {
     const data = {
+      name: `新建套装-${Math.floor(Math.random() * 9e8 + 9e9).toString(32)}`,
+      id: `id-${Math.floor(Math.random() * 9e8 + 9e9).toString(32)}`,
       attackMin: 500,
       attackMax: 1000,
       accuRate: 80,
@@ -50,28 +197,27 @@
 
     return data;
   };
-
+  // 转成正确的数据
+  const genTrueData = (item) => {
+    const defAttr = genAttr();
+    const keys = Object.keys(item).filter(key => typeof defAttr[key] === 'number');
+    const mockData = { ...item };
+    keys.forEach((key) => {
+      const isTrueVal = typeof item[key] === 'number' && item[key] >= 0 && item[key] <= 9999;
+      mockData[key] = isTrueVal ? item[key] : defAttr[key];
+      if (limits[key]) mockData[key] = Math.max(limits[key][0], Math.min(limits[key][1], mockData[key]));
+    });
+    if (mockData.hitMinRate + mockData.hitMaxRate > 100) mockData.hitMinRate = 100 - mockData.hitMaxRate;
+    if (mockData.attackMin > mockData.attackMax) mockData.attackMax = mockData.attackMin;
+    eleList.forEach((it) => {
+      if (mockData[`${it.value}Min`] > mockData[`${it.value}Max`]) mockData[`${it.value}Max`] = mockData[`${it.value}Min`];
+    });
+    return mockData;
+  };
   const calcAttr = (attr) => {
     const genRange = (min, max) => {
       if (min > max) return min;
       return Math.floor((min + (max - min) / 2));
-    };
-    // 格式化数据
-    const genTrueData = (item) => {
-      const defAttr = genAttr();
-      const keys = Object.keys(item).filter(it => it !== 'eleType');
-      const mockData = { ...item };
-      keys.forEach((key) => {
-        const isTrueVal = typeof item[key] === 'number' && item[key] >= 0 && item[key] <= 9999;
-        mockData[key] = isTrueVal ? item[key] : defAttr[key];
-        if (limits[key]) mockData[key] = Math.max(limits[key][0], Math.min(limits[key][1], mockData[key]));
-      });
-      if (mockData.hitMinRate + mockData.hitMaxRate > 100) mockData.hitMinRate = 100 - mockData.hitMaxRate;
-      if (mockData.attackMin > mockData.attackMax) mockData.attackMax = mockData.attackMin;
-      eleList.forEach((it) => {
-        if (mockData[`${it.value}Min`] > mockData[`${it.value}Max`]) mockData[`${it.value}Max`] = mockData[`${it.value}Min`];
-      });
-      return mockData;
     };
     // 获取属性攻击的数据
     const genEleData = (item) => {
@@ -132,41 +278,100 @@
       if (!damages.attack) damages.attack = 0;
       if (!damages.ele) damages.ele = 0;
       damages.total += attackDamages[key];
+      damages.total += eleDamages[key];
       damages.attack += attackDamages[key];
       damages.ele += eleDamages[key];
       damages[key] += attackDamages[key];
       damages[key] += eleDamages[key];
     });
-
-    // eslint-disable-next-line no-console
-    console.log({
-      attr,
-      counts,
-      eleData,
-      damages,
-    });
+    Object.keys(attackDamages).forEach((key) => damages[key] = Number(damages[key].toFixed(2)));
 
     return damages;
   };
 
-  // eslint-disable-next-line no-console
-  // console.log('genAttr', calcAttr(genAttr()));
-
   createApp({
     setup() {
-      const message = ref('Hello Vue!');
-      const eles = ref(genAttr());
+      const inited = ref(true); // 初始化
+      const eles = ref(genAttr()); // 当前列表
+      const cards = ref(storeAttrGroup); // 套装列表
+      const currentPlan = ref(''); // 对比套
+      const targetPlan = ref(''); // 目标套
 
       const damages = computed(() => calcAttr(eles.value));
-
-      // eslint-disable-next-line no-console
-      console.log('damages', damages);
+      const result = computed(() => {
+        if (!currentPlan.value || !targetPlan.value) return [];
+        if (currentPlan.value === targetPlan.value) return [];
+        const current = currentPlan.value === eles.value.id ? eles.value : cards.value.find(item => item.id === currentPlan.value);
+        const target = targetPlan.value === eles.value.id ? eles.value : cards.value.find(item => item.id === targetPlan.value);
+        if (!current || !target) return [];
+        const currentCalc = calcAttr(current);
+        const targetCalc = calcAttr(target);
+        const list = [
+          { alias: '对比套装', ...currentCalc },
+          { alias: '目标套装', ...targetCalc },
+        ];
+        const resultCalc = { alias: '套装差异', extraCls: 'result-tr' };
+        Object.keys(currentCalc).forEach((key) => {
+          resultCalc[key] = targetCalc[key] - currentCalc[key];
+        });
+        list.push(resultCalc);
+        list.forEach(item => {
+          Object.keys(currentCalc).forEach((key) => item[key] = Number(item[key]).toFixed(2));
+        });
+        return list;
+      });
+      const onSaveAndLocal = (list) => {
+        cards.value = list;
+        localStorage.setItem('attrGroups', JSON.stringify(list));
+      };
+      const onSave = () => {
+        const mockList = [...cards.value];
+        const idx = mockList.findIndex(item => item.id === eles.value.id);
+        if (~idx) {
+          mockList.splice(idx, 1, genTrueData(eles.value));
+        } else {
+          mockList.unshift(genTrueData(eles.value));
+        }
+        onSaveAndLocal(mockList);
+        eles.value = genAttr();
+      };
+      const onEdit = (id) => {
+        const target = cards.value.find(item => item.id === id);
+        if (target) {
+          eles.value = { ...target };
+        }
+      };
+      const onReset = () => {
+        eles.value = genAttr();
+      };
+      const onRemove = (id) => {
+        const mockList = [...cards.value];
+        const idx = mockList.findIndex(item => item.id === id);
+        const res = confirm(`确定要删除 ${mockList[idx].name} 吗？`);
+        if (~idx) {
+          if (res) {
+            mockList.splice(idx, 1);
+            onSaveAndLocal(mockList);
+            if (currentPlan.value === id) currentPlan.value = '';
+            if (targetPlan.value === id) targetPlan.value = '';
+          }
+        }
+      };
 
       return {
-        message,
+        inited: true,
+        eleList,
         eles,
+        cards,
+        currentPlan,
+        targetPlan,
         damages,
-      }
+        result,
+        onSave,
+        onReset,
+        onEdit,
+        onRemove,
+      };
     }
   }).mount('#app')
 </script>
