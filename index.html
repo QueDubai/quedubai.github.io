@@ -104,8 +104,8 @@
               <div class="card-deliver"></div>
               <div class="card-span">外功：{{item.attackMin}} - {{item.attackMax}}</div>
               <div class="card-span">精准：{{item.accuRate}}%</div>
-              <div class="card-span">会心：{{item.hitMinRate}}% &emsp; 会心伤害：{{item.hitMin}}%</div>
-              <div class="card-span">会意：{{item.hitMaxRate}}% &emsp; 会意伤害：{{item.hitMax}}%</div>
+              <div class="card-span">会心：{{item.hitMinRate}}%&emsp;会心伤害：{{item.hitMin}}%</div>
+              <div class="card-span">会意：{{item.hitMaxRate}}%&emsp;会意伤害：{{item.hitMax}}%</div>
               <div class="card-span">鸣金：{{item.mjMin}} - {{item.mjMax}}</div>
               <div class="card-span">裂石：{{item.lsMin}} - {{item.lsMax}}</div>
               <div class="card-span">牵丝：{{item.qsMin}} - {{item.qsMax}}</div>
@@ -113,6 +113,7 @@
               <div class="card-deliver"></div>
               <div class="card-btns">
                 <div class="card-btn" @click="onEdit(item.id)">编辑</div>
+                <div class="card-btn" @click="onCopy(item.id)">复制</div>
                 <div class="card-btn" @click="onRemove(item.id)">删除</div>
                 <div :class="['card-btn', { active: targetPlan === item.id }]" @click="targetPlan = item.id">目标套</div>
                 <div :class="['card-btn', { active: currentPlan === item.id }]" @click="currentPlan = item.id">对比套</div>
@@ -128,7 +129,7 @@
         <table class="table" v-if="result.length">
           <thead>
             <tr>
-              <th rowspan="2">标题</th>
+              <th class="header-th" rowspan="2">标题</th>
               <th rowspan="2">总伤害</th>
               <th colspan="4">伤害分类1</th>
               <th colspan="2">伤害分类2</th>
@@ -143,7 +144,7 @@
             </tr>
           </thead>
           <tr v-for="item of result" :class="item.extraCls" :key="item.alias">
-            <td>{{item.alias}}</td>
+            <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.alias}}</td>
             <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.total}}</td>
             <td :class="{ 'red-td': item.other < 0, 'green-td': item.other > 0 }">{{item.other}}</td>
             <td :class="{ 'red-td': item.common < 0, 'green-td': item.common > 0 }">{{item.common}}</td>
@@ -307,13 +308,14 @@
         const currentCalc = calcAttr(current);
         const targetCalc = calcAttr(target);
         const list = [
-          { alias: '对比套装', ...currentCalc },
-          { alias: '目标套装', ...targetCalc },
+          { alias: `对比套装 → ${current.name}`, ...currentCalc },
+          { alias: `目标套装 → ${target.name}`, ...targetCalc },
         ];
-        const resultCalc = { alias: '套装差异', extraCls: 'result-tr' };
+        const resultCalc = { alias: '', extraCls: 'result-tr' };
         Object.keys(currentCalc).forEach((key) => {
           resultCalc[key] = targetCalc[key] - currentCalc[key];
         });
+        resultCalc.alias = `套装差异 → ${Number(((targetCalc.total / currentCalc.total) * 100).toFixed(2))}%`;
         list.push(resultCalc);
         list.forEach(item => {
           Object.keys(currentCalc).forEach((key) => item[key] = Number(item[key]).toFixed(2));
@@ -357,6 +359,19 @@
           }
         }
       };
+      const onCopy = (id) => {
+        const mockList = [...cards.value];
+        const idx = mockList.findIndex(item => item.id === id);
+        if (~idx) {
+          const newData = genAttr();
+          const mockData = { ...mockList[idx] };
+          const newKeys = ['name', 'id'];
+          newKeys.forEach(key => {
+            mockData[key] = newData[key];
+          });
+          eles.value = mockData;
+        }
+      };
 
       return {
         inited: true,
@@ -371,6 +386,7 @@
         onReset,
         onEdit,
         onRemove,
+        onCopy,
       };
     }
   }).mount('#app')

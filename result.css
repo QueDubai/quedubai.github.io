@@ -15,6 +15,9 @@
   border: 1px solid #999;
   text-align: center;
 }
+.header-th {
+  width: 340px;
+}
 .result-tr .red-td {
   color: #ff8345;
 }
