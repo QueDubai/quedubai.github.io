@@ -9,6 +9,9 @@
   width: 100%;
   border-collapse: collapse;
 }
+.table + .table {
+  margin-top: 20px;
+}
 .table th,
 .table td {
   padding: 5px;

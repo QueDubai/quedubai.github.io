@@ -92,7 +92,7 @@
           <div class="btns">
             <div class="btn" @click="onSave">保存</div>
             <div class="btn" @click="onReset">重置</div>
-            <div :class="['btn', { active: targetPlan === eles.id }]" @click="targetPlan = eles.id">目标套</div>
+            <div :class="['btn', { active: targetPlan.includes(eles.id) }]" @click="chooseTarget(eles.id)">目标套</div>
             <div :class="['btn', { active: currentPlan === eles.id }]" @click="currentPlan = eles.id">对比套</div>
           </div>
         </div>
@@ -115,7 +115,7 @@
                 <div class="card-btn" @click="onEdit(item.id)">编辑</div>
                 <div class="card-btn" @click="onCopy(item.id)">复制</div>
                 <div class="card-btn" @click="onRemove(item.id)">删除</div>
-                <div :class="['card-btn', { active: targetPlan === item.id }]" @click="targetPlan = item.id">目标套</div>
+                <div :class="['card-btn', { active: targetPlan.includes(item.id) }]" @click="chooseTarget(item.id)">目标套</div>
                 <div :class="['card-btn', { active: currentPlan === item.id }]" @click="currentPlan = item.id">对比套</div>
               </div>
             </div>
@@ -126,34 +126,36 @@
         </div>
       </div>
       <div class="result">
-        <table class="table" v-if="result.length">
-          <thead>
-            <tr>
-              <th class="header-th" rowspan="2">标题</th>
-              <th rowspan="2">总伤害</th>
-              <th colspan="4">伤害分类1</th>
-              <th colspan="2">伤害分类2</th>
+        <template v-if="result.length">
+          <table class="table" v-for="(resultItem, index) of result" :key="index">
+            <thead>
+              <tr>
+                <th class="header-th" rowspan="2">标题</th>
+                <th rowspan="2">总伤害</th>
+                <th colspan="4">伤害分类1</th>
+                <th colspan="2">伤害分类2</th>
+              </tr>
+              <tr>
+                <th>擦伤</th>
+                <th>普通</th>
+                <th>会心</th>
+                <th>会意</th>
+                <th>外功伤害</th>
+                <th>属性伤害</th>
+              </tr>
+            </thead>
+            <tr v-for="item of resultItem" :class="item.extraCls" :key="item.alias">
+              <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.alias}}</td>
+              <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.total}}</td>
+              <td :class="{ 'red-td': item.other < 0, 'green-td': item.other > 0 }">{{item.other}}</td>
+              <td :class="{ 'red-td': item.common < 0, 'green-td': item.common > 0 }">{{item.common}}</td>
+              <td :class="{ 'red-td': item.hitMin < 0, 'green-td': item.hitMin > 0 }">{{item.hitMin}}</td>
+              <td :class="{ 'red-td': item.hitMax < 0, 'green-td': item.hitMax > 0 }">{{item.hitMax}}</td>
+              <td :class="{ 'red-td': item.attack < 0, 'green-td': item.attack > 0 }">{{item.attack}}</td>
+              <td :class="{ 'red-td': item.ele < 0, 'green-td': item.ele > 0 }">{{item.ele}}</td>
             </tr>
-            <tr>
-              <th>擦伤</th>
-              <th>普通</th>
-              <th>会心</th>
-              <th>会意</th>
-              <th>外功伤害</th>
-              <th>属性伤害</th>
-            </tr>
-          </thead>
-          <tr v-for="item of result" :class="item.extraCls" :key="item.alias">
-            <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.alias}}</td>
-            <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.total}}</td>
-            <td :class="{ 'red-td': item.other < 0, 'green-td': item.other > 0 }">{{item.other}}</td>
-            <td :class="{ 'red-td': item.common < 0, 'green-td': item.common > 0 }">{{item.common}}</td>
-            <td :class="{ 'red-td': item.hitMin < 0, 'green-td': item.hitMin > 0 }">{{item.hitMin}}</td>
-            <td :class="{ 'red-td': item.hitMax < 0, 'green-td': item.hitMax > 0 }">{{item.hitMax}}</td>
-            <td :class="{ 'red-td': item.attack < 0, 'green-td': item.attack > 0 }">{{item.attack}}</td>
-            <td :class="{ 'red-td': item.ele < 0, 'green-td': item.ele > 0 }">{{item.ele}}</td>
-          </tr>
-        </table>
+          </table>
+        </template>
         <div class="result-tips" v-else>
           选择“目标套”和“对比套”后，生成对比结果
         </div>
@@ -289,6 +291,25 @@
 
     return damages;
   };
+  const diffAttr = (current, target) => {
+    if (!current || !target) return [];
+    const currentCalc = calcAttr(current);
+    const targetCalc = calcAttr(target);
+    const list = [
+      { alias: `对比套装 → ${current.name}`, ...currentCalc },
+      { alias: `目标套装 → ${target.name}`, ...targetCalc },
+    ];
+    const resultCalc = { alias: '', extraCls: 'result-tr' };
+    Object.keys(currentCalc).forEach((key) => {
+      resultCalc[key] = targetCalc[key] - currentCalc[key];
+    });
+    resultCalc.alias = `套装差异 → ${Number(((targetCalc.total / currentCalc.total) * 100).toFixed(2))}%`;
+    list.push(resultCalc);
+    list.forEach(item => {
+      Object.keys(currentCalc).forEach((key) => item[key] = Number(item[key]).toFixed(2));
+    });
+    return list;
+  };
 
   createApp({
     setup() {
@@ -296,31 +317,21 @@
       const eles = ref(genAttr()); // 当前列表
       const cards = ref(storeAttrGroup); // 套装列表
       const currentPlan = ref(''); // 对比套
-      const targetPlan = ref(''); // 目标套
+      const targetPlan = ref([]); // 目标套
 
       const damages = computed(() => calcAttr(eles.value));
       const result = computed(() => {
-        if (!currentPlan.value || !targetPlan.value) return [];
-        if (currentPlan.value === targetPlan.value) return [];
-        const current = currentPlan.value === eles.value.id ? eles.value : cards.value.find(item => item.id === currentPlan.value);
-        const target = targetPlan.value === eles.value.id ? eles.value : cards.value.find(item => item.id === targetPlan.value);
-        if (!current || !target) return [];
-        const currentCalc = calcAttr(current);
-        const targetCalc = calcAttr(target);
-        const list = [
-          { alias: `对比套装 → ${current.name}`, ...currentCalc },
-          { alias: `目标套装 → ${target.name}`, ...targetCalc },
-        ];
-        const resultCalc = { alias: '', extraCls: 'result-tr' };
-        Object.keys(currentCalc).forEach((key) => {
-          resultCalc[key] = targetCalc[key] - currentCalc[key];
+        if (!currentPlan.value || !targetPlan.value?.length) return [];
+
+        const resultList = targetPlan.value.map(planId => {
+          if (currentPlan.value === planId) return null;
+
+          const current = currentPlan.value === eles.value.id ? eles.value : cards.value.find(item => item.id === currentPlan.value);
+          const target = planId === eles.value.id ? eles.value : cards.value.find(item => item.id === planId);
+
+          return diffAttr(current, target);
         });
-        resultCalc.alias = `套装差异 → ${Number(((targetCalc.total / currentCalc.total) * 100).toFixed(2))}%`;
-        list.push(resultCalc);
-        list.forEach(item => {
-          Object.keys(currentCalc).forEach((key) => item[key] = Number(item[key]).toFixed(2));
-        });
-        return list;
+        return resultList.filter(Boolean);
       });
       const onSaveAndLocal = (list) => {
         cards.value = list;
@@ -372,6 +383,13 @@
           eles.value = mockData;
         }
       };
+      const chooseTarget = (id) => {
+        if (targetPlan.value.includes(id)) {
+          targetPlan.value = targetPlan.value.filter(it => it !== id);
+        } else {
+          targetPlan.value = [...new Set([...targetPlan.value, id])];
+        }
+      };
 
       return {
         inited: true,
@@ -387,6 +405,7 @@
         onEdit,
         onRemove,
         onCopy,
+        chooseTarget,
       };
     }
   }).mount('#app')
