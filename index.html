@@ -220,7 +220,7 @@
   const calcAttr = (attr) => {
     const genRange = (min, max) => {
       if (min > max) return min;
-      return Math.floor((min + (max - min) / 2));
+      return Math.floor(((max + min) / 2));
     };
     // 获取属性攻击的数据
     const genEleData = (item) => {
@@ -229,8 +229,8 @@
       let common = 0;
       eleList.forEach((it) => {
         if (it.value === item.eleType) {
-          max += Math.max(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
-          min += Math.min(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+          max += Math.max(item[`${it.value}Min`], item[`${it.value}Max`]);
+          min += Math.min(item[`${it.value}Min`], item[`${it.value}Max`]);
           common += genRange(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
         } else {
           max += Math.max(item[`${it.value}Min`], item[`${it.value}Max`]);
