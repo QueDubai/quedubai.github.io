@@ -33,3 +33,9 @@
   justify-content: center;
   padding: 20px;
 }
+.tr-odds {
+  background: #ddd;
+}
+.tr-even {
+  background: #eee;
+}

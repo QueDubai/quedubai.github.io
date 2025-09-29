@@ -178,6 +178,41 @@
           选择“目标套”和“对比套”后，生成对比结果
         </div>
       </div>
+      <div class="result">
+        <template v-if="autoResult.length">
+          <table class="table" v-for="(resultItem, index) of autoResult" :key="index">
+            <thead>
+              <tr>
+                <th class="header-th" rowspan="2">标题</th>
+                <th rowspan="2">总伤害</th>
+                <th colspan="4">伤害分类1</th>
+                <th colspan="2">伤害分类2</th>
+              </tr>
+              <tr>
+                <th>擦伤</th>
+                <th>普通</th>
+                <th>会心</th>
+                <th>会意</th>
+                <th>外功伤害</th>
+                <th>属性伤害</th>
+              </tr>
+            </thead>
+            <tr v-for="item of resultItem" :class="item.extraCls" :key="item.alias">
+              <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.alias}}</td>
+              <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.total}}</td>
+              <td :class="{ 'red-td': item.other < 0, 'green-td': item.other > 0 }">{{item.other}}</td>
+              <td :class="{ 'red-td': item.common < 0, 'green-td': item.common > 0 }">{{item.common}}</td>
+              <td :class="{ 'red-td': item.hitMin < 0, 'green-td': item.hitMin > 0 }">{{item.hitMin}}</td>
+              <td :class="{ 'red-td': item.hitMax < 0, 'green-td': item.hitMax > 0 }">{{item.hitMax}}</td>
+              <td :class="{ 'red-td': item.attack < 0, 'green-td': item.attack > 0 }">{{item.attack}}</td>
+              <td :class="{ 'red-td': item.ele < 0, 'green-td': item.ele > 0 }">{{item.ele}}</td>
+            </tr>
+          </table>
+        </template>
+        <div class="result-tips" v-else>
+          选中目标套之后，自动对比部分满值属性的结果
+        </div>
+      </div>
     </div>
   </div>
 </body>
@@ -235,10 +270,6 @@
       if (limits[key]) mockData[key] = Math.max(limits[key][0], Math.min(limits[key][1], mockData[key]));
     });
     if (mockData.hitMinRate + mockData.hitMaxRate > 100) mockData.hitMinRate = 100 - mockData.hitMaxRate;
-    if (mockData.attackMin > mockData.attackMax) mockData.attackMax = mockData.attackMin;
-    eleList.forEach((it) => {
-      if (mockData[`${it.value}Min`] > mockData[`${it.value}Max`]) mockData[`${it.value}Max`] = mockData[`${it.value}Min`];
-    });
     return mockData;
   };
   const calcAttr = (attr) => {
@@ -365,6 +396,40 @@
         });
         return resultList.filter(Boolean);
       });
+      const autoResult = computed(() => {
+        if (!currentPlan.value) return [];
+        const autoList = [
+          { key: 'attackMin', name: '小外', val: 77.8 },
+          { key: 'attackMax', name: '大外', val: 77.8 },
+          { key: 'accuRate', name: '精准', val: 4.8 },
+          { key: 'hitMinRate', name: '会心', val: 5.4 },
+          { key: 'hitMaxRate', name: '会意', val: 2.7 },
+          { key: 'mjMin', name: '小鸣金', val: 44.2 },
+          { key: 'mjMax', name: '大鸣金', val: 44.2 },
+          { key: 'lsMin', name: '小裂石', val: 44.2 },
+          { key: 'lsMax', name: '大裂石', val: 44.2 },
+          { key: 'qsMin', name: '小牵丝', val: 44.2 },
+          { key: 'qsMax', name: '大牵丝', val: 44.2 },
+          { key: 'pzMin', name: '小破竹', val: 44.2 },
+          { key: 'pzMax', name: '大破竹', val: 44.2 },
+        ];
+        const base = cards.value.find(item => item.id === currentPlan.value);
+        const resultList = autoList.map(item => {
+          const attrs = {
+            ...base,
+            [item.key]: base[item.key] + item.val,
+            name: item.name,
+          };
+          return diffAttr(base, attrs);
+        });
+        const autoResultList = [{ ...resultList[0][0] }];
+        for (let idx = 0; idx < resultList.length; idx++) {
+          const bgc = idx % 2 === 0 ? 'tr-odds' : 'tr-even';
+          autoResultList.push({ ...resultList[idx][1], extraCls: `${bgc} ${resultList[idx][1].extraCls || ''}` });
+          autoResultList.push({ ...resultList[idx][2], extraCls: `${bgc} ${resultList[idx][2].extraCls || ''}` });
+        }
+        return [autoResultList];
+      });
       const onSaveAndLocal = (list) => {
         cards.value = list;
         localStorage.setItem('attrGroups', JSON.stringify(list));
@@ -432,6 +497,7 @@
         targetPlan,
         damages,
         result,
+        autoResult,
         onSave,
         onReset,
         onEdit,
