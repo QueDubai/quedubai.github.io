@@ -13,7 +13,7 @@
 </head>
 <body>
   <div id="app">
-    <header class="header">浮云城输出期望值简易计算工具</header>
+    <header class="header">输出期望值简易计算工具</header>
     <div :class="['container', { inited: inited }]" style="display: none;">
       <div class="main">
         <div class="form">
@@ -27,6 +27,14 @@
               <input class="input" v-model.number="eles.attackMin" />
               <div class="to">~</div>
               <input class="input" v-model.number="eles.attackMax" />
+            </div>
+          </div>
+          <div class="label">
+            <div class="name">外穿</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.attackPenetr" />
+              <div class="to">外增</div>
+              <input class="input" v-model.number="eles.attackGain" />
             </div>
           </div>
           <div class="label">
@@ -89,6 +97,14 @@
               <input class="input" v-model.number="eles.pzMax" />
             </div>
           </div>
+          <div class="label">
+            <div class="name">属穿</div>
+            <div class="value">
+              <input class="input" v-model.number="eles.attrPenetr" />
+              <div class="to">属增</div>
+              <input class="input" v-model.number="eles.attrGain" />
+            </div>
+          </div>
           <div class="btns">
             <div class="btn" @click="onSave">保存</div>
             <div class="btn" @click="onReset">重置</div>
@@ -103,6 +119,7 @@
               <div class="card-name">{{item.name}}</div>
               <div class="card-deliver"></div>
               <div class="card-span">外功：{{item.attackMin}} - {{item.attackMax}}</div>
+              <div class="card-span">外穿：{{item.attackPenetr}} 外增 {{item.attackGain}}</div>
               <div class="card-span">精准：{{item.accuRate}}%</div>
               <div class="card-span">会心：{{item.hitMinRate}}%&emsp;会心伤害：{{item.hitMin}}%</div>
               <div class="card-span">会意：{{item.hitMaxRate}}%&emsp;会意伤害：{{item.hitMax}}%</div>
@@ -110,6 +127,7 @@
               <div class="card-span">裂石：{{item.lsMin}} - {{item.lsMax}}</div>
               <div class="card-span">牵丝：{{item.qsMin}} - {{item.qsMax}}</div>
               <div class="card-span">破竹：{{item.pzMin}} - {{item.pzMax}}</div>
+              <div class="card-span">属穿：{{item.attrPenetr}} 属增 {{item.attrGain}}</div>
               <div class="card-deliver"></div>
               <div class="card-btns">
                 <div class="card-btn" @click="onEdit(item.id)">编辑</div>
@@ -177,7 +195,7 @@
     accuRate: [0, 100],
     hitMinRate: [0, 100],
     hitMin: [0, 100],
-    hitMaxRate: [0, 50],
+    hitMaxRate: [0, 60],
     hitMax: [0, 100],
   };
   const genAttr = () => {
@@ -186,6 +204,10 @@
       id: `id-${Math.floor(Math.random() * 9e8 + 9e9).toString(32)}`,
       attackMin: 500,
       attackMax: 1000,
+      attackGain: 0, // 外功增益
+      attackPenetr: 0, // 外功穿透
+      attrGain: 0, // 属攻增益
+      attrPenetr: 0, // 属攻穿透
       accuRate: 80,
       hitMinRate: 40,
       hitMin: 50,
@@ -200,6 +222,8 @@
 
     return data;
   };
+  /** 计算穿透和增益后带来的收益 */
+  const genGain = (base, penetr = 0, gain = 0) => (base * (100 + penetr / 2) * (100 + gain) / 1e4);
   // 转成正确的数据
   const genTrueData = (item) => {
     const defAttr = genAttr();
@@ -229,9 +253,12 @@
       let common = 0;
       eleList.forEach((it) => {
         if (it.value === item.eleType) {
-          max += Math.max(item[`${it.value}Min`], item[`${it.value}Max`]);
-          min += Math.min(item[`${it.value}Min`], item[`${it.value}Max`]);
-          common += genRange(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+          const selfMax = Math.max(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+          const selfMin = Math.min(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+          const selfCommon = genRange(item[`${it.value}Min`], item[`${it.value}Max`]) * 1.5;
+          max += genGain(selfMax, item.attrPenetr, item.attrGain);
+          min += genGain(selfMin, item.attrPenetr, item.attrGain);
+          common += genGain(selfCommon, item.attrPenetr, item.attrGain);
         } else {
           max += Math.max(item[`${it.value}Min`], item[`${it.value}Max`]);
           min += Math.min(item[`${it.value}Min`], item[`${it.value}Max`]);
@@ -243,6 +270,8 @@
     const {
       attackMin,
       attackMax,
+      attackGain,
+      attackPenetr,
       accuRate,
       hitMinRate,
       hitMin,
@@ -268,6 +297,9 @@
       common: commonCount * genRange(attackMin, attackMax) / 1e2,
       other: otherCount * attackMin / 1e2,
     };
+    Object.keys(attackDamages).forEach((key) => {
+      attackDamages[key] = genGain(attackDamages[key], attackPenetr, attackGain);
+    });
     const eleDamages = {
       hitMax: hitMaxCount * eleData.max * (100 + hitMax) / 1e4,
       hitMin: hitMinCount * eleData.common * (100 + hitMin) / 1e4,
