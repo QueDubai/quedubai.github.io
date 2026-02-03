@@ -399,19 +399,19 @@
       const autoResult = computed(() => {
         if (!currentPlan.value) return [];
         const autoList = [
-          { key: 'attackMin', name: '小外', val: 77.8 },
-          { key: 'attackMax', name: '大外', val: 77.8 },
-          { key: 'accuRate', name: '精准', val: 4.8 },
-          { key: 'hitMinRate', name: '会心', val: 5.4 },
-          { key: 'hitMaxRate', name: '会意', val: 2.7 },
-          { key: 'mjMin', name: '小鸣金', val: 44.2 },
-          { key: 'mjMax', name: '大鸣金', val: 44.2 },
-          { key: 'lsMin', name: '小裂石', val: 44.2 },
-          { key: 'lsMax', name: '大裂石', val: 44.2 },
-          { key: 'qsMin', name: '小牵丝', val: 44.2 },
-          { key: 'qsMax', name: '大牵丝', val: 44.2 },
-          { key: 'pzMin', name: '小破竹', val: 44.2 },
-          { key: 'pzMax', name: '大破竹', val: 44.2 },
+          { key: 'attackMin', name: '小外', val: 90.6 },
+          { key: 'attackMax', name: '大外', val: 90.6 },
+          { key: 'accuRate', name: '精准', val: 5 },
+          { key: 'hitMinRate', name: '会心', val: 5.6 },
+          { key: 'hitMaxRate', name: '会意', val: 2.8 },
+          { key: 'mjMin', name: '小鸣金', val: 51.4 },
+          { key: 'mjMax', name: '大鸣金', val: 51.4 },
+          { key: 'lsMin', name: '小裂石', val: 51.4 },
+          { key: 'lsMax', name: '大裂石', val: 51.4 },
+          { key: 'qsMin', name: '小牵丝', val: 51.4 },
+          { key: 'qsMax', name: '大牵丝', val: 51.4 },
+          { key: 'pzMin', name: '小破竹', val: 51.4 },
+          { key: 'pzMax', name: '大破竹', val: 51.4 },
         ];
         const base = cards.value.find(item => item.id === currentPlan.value);
         const resultList = autoList.map(item => {
