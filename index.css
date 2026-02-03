@@ -7,8 +7,8 @@ div {
 }
 
 #app {
-  width: 1200px;
-  margin-left: calc(50vw - 600px);
+  width: 1240px;
+  margin-left: calc(50vw - 620px);
 }
 .container.inited {
   display: block !important;
