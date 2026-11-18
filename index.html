@@ -198,14 +198,30 @@
               </tr>
             </thead>
             <tr v-for="item of resultItem" :class="item.extraCls" :key="item.alias">
-              <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.alias}}</td>
-              <td :class="{ 'red-td': item.total < 0, 'green-td': item.total > 0 }">{{item.total}}</td>
-              <td :class="{ 'red-td': item.other < 0, 'green-td': item.other > 0 }">{{item.other}}</td>
-              <td :class="{ 'red-td': item.common < 0, 'green-td': item.common > 0 }">{{item.common}}</td>
-              <td :class="{ 'red-td': item.hitMin < 0, 'green-td': item.hitMin > 0 }">{{item.hitMin}}</td>
-              <td :class="{ 'red-td': item.hitMax < 0, 'green-td': item.hitMax > 0 }">{{item.hitMax}}</td>
-              <td :class="{ 'red-td': item.attack < 0, 'green-td': item.attack > 0 }">{{item.attack}}</td>
-              <td :class="{ 'red-td': item.ele < 0, 'green-td': item.ele > 0 }">{{item.ele}}</td>
+              <td>
+                {{ item.alias }}<template v-if="item.totalRate != null"> (<span :class="signedCls(item.totalDiff)">{{ item.totalRate }}%</span>)</template>
+              </td>
+              <td>
+                {{ item.total }}<template v-if="item.totalDiff != null"> (<span :class="signedCls(item.totalDiff)">{{ item.totalDiff }}</span>)</template>
+              </td>
+              <td>
+                {{ item.other }}<template v-if="item.otherDiff != null"> (<span :class="signedCls(item.otherDiff)">{{ item.otherDiff }}</span>)</template>
+              </td>
+              <td>
+                {{ item.common }}<template v-if="item.commonDiff != null"> (<span :class="signedCls(item.commonDiff)">{{ item.commonDiff }}</span>)</template>
+              </td>
+              <td>
+                {{ item.hitMin }}<template v-if="item.hitMinDiff != null"> (<span :class="signedCls(item.hitMinDiff)">{{ item.hitMinDiff }}</span>)</template>
+              </td>
+              <td>
+                {{ item.hitMax }}<template v-if="item.hitMaxDiff != null"> (<span :class="signedCls(item.hitMaxDiff)">{{ item.hitMaxDiff }}</span>)</template>
+              </td>
+              <td>
+                {{ item.attack }}<template v-if="item.attackDiff != null"> (<span :class="signedCls(item.attackDiff)">{{ item.attackDiff }}</span>)</template>
+              </td>
+              <td>
+                {{ item.ele }}<template v-if="item.eleDiff != null"> (<span :class="signedCls(item.eleDiff)">{{ item.eleDiff }}</span>)</template>
+              </td>
             </tr>
           </table>
         </template>
@@ -364,9 +380,12 @@
     ];
     const resultCalc = { alias: '', extraCls: 'result-tr' };
     Object.keys(currentCalc).forEach((key) => {
-      resultCalc[key] = targetCalc[key] - currentCalc[key];
+      const diff = targetCalc[key] - currentCalc[key];
+      resultCalc[key] = diff;
+      list[1][`${key}Diff`] = diff.toFixed(2);
+      list[1][`${key}Rate`] = ((targetCalc[key] / currentCalc[key]) * 100).toFixed(2);
     });
-    resultCalc.alias = `套装差异 → ${Number(((targetCalc.total / currentCalc.total) * 100).toFixed(2))}%`;
+    resultCalc.alias = `套装差异 → ${list[1].totalRate}%`;
     list.push(resultCalc);
     list.forEach(item => {
       Object.keys(currentCalc).forEach((key) => item[key] = Number(item[key]).toFixed(2));
@@ -401,9 +420,9 @@
         const autoList = [
           { key: 'attackMin', name: '小外', val: 139.6 },
           { key: 'attackMax', name: '大外', val: 139.6 },
-          { key: 'accuRate', name: '精准', val: 5 },
-          { key: 'hitMinRate', name: '会心', val: 5.6 },
-          { key: 'hitMaxRate', name: '会意', val: 2.8 },
+          { key: 'accuRate', name: '精准', val: 5.14 },
+          { key: 'hitMinRate', name: '会心', val: 5.78 },
+          { key: 'hitMaxRate', name: '会意', val: 2.89 },
           { key: 'mjMin', name: '小鸣金', val: 79.2 },
           { key: 'mjMax', name: '大鸣金', val: 79.2 },
           { key: 'lsMin', name: '小裂石', val: 79.2 },
@@ -422,12 +441,36 @@
           };
           return diffAttr(base, attrs);
         });
+        const currentRow = resultList[0][0];
+        const rowByName = Object.fromEntries(resultList.map((rows, idx) => [autoList[idx].name, rows[1]]));
+        const mixRow = (name, weights) => {
+          const row = { alias: name };
+          const sample = rowByName[Object.keys(weights)[0]];
+          Object.keys(sample).forEach((key) => {
+            if (key === 'alias' || key === 'extraCls' || key.endsWith('Diff') || key.endsWith('Rate')) return;
+            const diff = Object.entries(weights).reduce((acc, [stat, weight]) => acc + Number(rowByName[stat][`${key}Diff`]) * weight, 0);
+            const value = Number(currentRow[key]) + diff;
+            row[key] = value.toFixed(2);
+            row[`${key}Diff`] = diff.toFixed(2);
+            row[`${key}Rate`] = ((value / Number(currentRow[key])) * 100).toFixed(2);
+          });
+          return row;
+        };
+        const resultList2 = [
+          mixRow('劲', { 大外: 0.86, 小外: 0.14 }),
+          mixRow('势', { 大外: 0.57, 会意: 0.42 }),
+          mixRow('敏', { 小外: 0.57, 会心: 0.42 }),
+        ];
         const autoResultList = [{ ...resultList[0][0] }];
-        for (let idx = 0; idx < resultList.length; idx++) {
+        const merged = [];
+        resultList.forEach((rows, idx) => {
+          merged.push({ ...rows[1], alias: autoList[idx].name });
+          if (autoList[idx].name === '会意') merged.push(...resultList2);
+        });
+        merged.forEach((row, idx) => {
           const bgc = idx % 2 === 0 ? 'tr-odds' : 'tr-even';
-          autoResultList.push({ ...resultList[idx][1], extraCls: `${bgc} ${resultList[idx][1].extraCls || ''}` });
-          autoResultList.push({ ...resultList[idx][2], extraCls: `${bgc} ${resultList[idx][2].extraCls || ''}` });
-        }
+          autoResultList.push({ ...row, extraCls: `${bgc} result-tr` });
+        });
         return [autoResultList];
       });
       const onSaveAndLocal = (list) => {
@@ -487,6 +530,7 @@
           targetPlan.value = [...new Set([...targetPlan.value, id])];
         }
       };
+      const signedCls = (val) => ({ 'red-td': val < 0, 'green-td': val > 0 });
 
       return {
         inited: true,
@@ -504,6 +548,7 @@
         onRemove,
         onCopy,
         chooseTarget,
+        signedCls,
       };
     }
   }).mount('#app')

@@ -19,7 +19,10 @@
   text-align: center;
 }
 .header-th {
-  width: 340px;
+  width: 160px;
+}
+.table tbody {
+  font-size: 14px;
 }
 .result-tr .red-td {
   color: #ff8345;
